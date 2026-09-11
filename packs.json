@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Przykładowy Mod",
+    "kind": "Mod",
+    "version": "1.20.1 · Forge",
+    "file": "packs/przykladowy-mod.zip",
+    "install_path": ".minecraft/mods",
+    "notes": "To jest przykładowy wpis. Podmień go na swój mod: wrzuć plik zip do folderu packs/ i zaktualizuj ten plik."
+  },
+  {
+    "name": "Przykładowy Texture Pack",
+    "kind": "Texture Pack",
+    "version": "1.20.x",
+    "file": "packs/przykladowy-texturepack.zip",
+    "install_path": ".minecraft/resourcepacks",
+    "notes": "Drugi przykładowy wpis — usuń, gdy dodasz własne paczki."
+  }
+]
