@@ -154,24 +154,34 @@
 
     <div class="list" id="list"></div>
 
-    <div class="state" id="loadingState">Wczytywanie…</div>
-    <div class="state" id="emptyState">Biblioteka jest pusta. Dodaj wpis w <code>paczki.json</code>.</div>
+    <div class="state" id="emptyState">Biblioteka jest pusta. Dodaj paczkę do listy <code>PACZKI</code> w kodzie strony.</div>
     <div class="state" id="noResultsState">Brak wyników dla tego wyszukiwania.</div>
-    <div class="state" id="errorState">Nie udało się wczytać <code>paczki.json</code>.</div>
   </main>
 
   <footer>Skrzynka — bibliotekę aktualizuje wyłącznie administrator.</footer>
 </div>
 
 <script>
+  /* =========================================================
+     LISTA PACZEK — edytuj tutaj, bez żadnego zewnętrznego pliku.
+     Każda paczka: name (nazwa), description (krótki opis),
+     link (link do pliku na Google Dysku).
+
+     Przykład:
+     {
+       name: "Nazwa paczki",
+       description: "Krótki opis — co to jest, do czego służy.",
+       link: "https://drive.google.com/file/d/XXXXXXXX/view?usp=sharing"
+     },
+     ========================================================= */
+  const PACZKI = [
+
+  ];
+
   const list = document.getElementById('list');
-  const loadingState = document.getElementById('loadingState');
   const emptyState = document.getElementById('emptyState');
   const noResultsState = document.getElementById('noResultsState');
-  const errorState = document.getElementById('errorState');
   const searchInput = document.getElementById('searchInput');
-
-  let allPacks = [];
 
   function escapeHtml(str){
     const div = document.createElement('div');
@@ -181,18 +191,6 @@
 
   function show(el, on){ el.classList.toggle('show', on); }
 
-  fetch('paczki.json')
-    .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-    .then(data => {
-      allPacks = Array.isArray(data) ? data : [];
-      show(loadingState, false);
-      render();
-    })
-    .catch(() => {
-      show(loadingState, false);
-      show(errorState, true);
-    });
-
   searchInput.addEventListener('input', render);
 
   function render(){
@@ -201,12 +199,12 @@
     show(emptyState, false);
     show(noResultsState, false);
 
-    if(allPacks.length === 0){
+    if(PACZKI.length === 0){
       show(emptyState, true);
       return;
     }
 
-    const filtered = allPacks.filter(p =>
+    const filtered = PACZKI.filter(p =>
       !term || (p.name || '').toLowerCase().includes(term) || (p.description || '').toLowerCase().includes(term)
     );
 
@@ -229,7 +227,7 @@
     });
   }
 
-  show(loadingState, true);
+  render();
 </script>
 
 </body>
