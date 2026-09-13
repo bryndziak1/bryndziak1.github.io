@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skrzynka — biblioteka modów i texture packów</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #121118;
+    --bg-raised: #1c1b23;
+    --bg-raised-2: #242230;
+    --line: #322f3b;
+    --line-soft: #26232d;
+    --text: #ece9e2;
+    --text-dim: #9996a3;
+    --text-faint: #67646f;
+    --moss: #93b072;
+    --moss-dim: #4f6a3c;
+    --moss-soft: rgba(147,176,114,.1);
+    --gold: #d8ac68;
+    --gold-dim: #8a6431;
+    --gold-soft: rgba(216,172,104,.1);
+    --slate: #8fb0c9;
+    --slate-dim: #3f5c70;
+    --slate-soft: rgba(143,176,201,.1);
+    --radius-lg: 18px;
+    --radius-md: 11px;
+    --radius-sm: 7px;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      radial-gradient(1px 1px at 18% 24%, rgba(147,176,114,.28) 0, transparent 100%),
+      radial-gradient(1px 1px at 68% 62%, rgba(216,172,104,.22) 0, transparent 100%),
+      radial-gradient(1px 1px at 38% 78%, rgba(143,176,201,.2) 0, transparent 100%),
+      radial-gradient(1px 1px at 83% 12%, rgba(216,172,104,.16) 0, transparent 100%),
+      radial-gradient(1px 1px at 8% 88%, rgba(147,176,114,.16) 0, transparent 100%);
+    background-size: 960px 960px;
+  }
+  body::after{
+    content:"";
+    position:fixed; top:-20%; left:50%; transform:translateX(-50%);
+    width:900px; height:500px; z-index:0; pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(147,176,114,.07), transparent 70%);
+  }
+
+  .wrap{max-width:980px; margin:0 auto; padding:0 28px; position:relative; z-index:1;}
+
+  header.top{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:24px 0;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .brand{display:flex; align-items:center; gap:11px;}
+  .brand-mark{
+    width:32px; height:32px; border-radius:9px; flex-shrink:0;
+    background:linear-gradient(135deg, var(--moss) 0 50%, var(--gold) 50% 100%);
+  }
+  .brand-name{font-weight:600; font-size:1.02rem; letter-spacing:0.01em;}
+
+  .top-meta{
+    font-family:var(--mono); font-size:0.76rem; color:var(--text-faint);
+    display:flex; gap:18px;
+  }
+  .top-meta b{color:var(--text-dim); font-weight:500;}
+
+  /* HERO */
+  .hero{padding:64px 0 40px;}
+  .kicker{
+    font-family:var(--mono); font-size:0.74rem; letter-spacing:0.12em;
+    color:var(--moss); text-transform:uppercase; margin-bottom:16px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .kicker::before{content:""; width:16px; height:1px; background:var(--moss);}
+  .hero h1{
+    font-size:clamp(2rem, 4.2vw, 2.9rem);
+    line-height:1.1; margin:0 0 16px; font-weight:700; letter-spacing:-0.015em;
+    max-width:20ch;
+  }
+  .hero p{color:var(--text-dim); font-size:1.03rem; max-width:56ch; margin:0 0 28px;}
+
+  /* SEARCH + FILTERS */
+  .controls{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:22px 0; margin-top:8px;
+    border-top:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .search-box{
+    display:flex; align-items:center; gap:9px;
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:999px; padding:9px 15px; flex:1; min-width:200px;
+  }
+  .search-box svg{width:15px; height:15px; color:var(--text-faint); flex-shrink:0;}
+  .search-box input{
+    background:none; border:none; outline:none; width:100%;
+    color:var(--text); font-family:var(--sans); font-size:0.9rem;
+  }
+  .search-box input::placeholder{color:var(--text-faint);}
+
+  .chip-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{
+    font-family:var(--sans); font-size:0.82rem;
+    padding:8px 15px; border-radius:999px;
+    border:1px solid var(--line); background:transparent; color:var(--text-dim);
+    cursor:pointer; transition:border-color .12s ease, color .12s ease, background .12s ease;
+  }
+  .chip.selected{border-color:var(--moss); color:var(--moss); background:var(--moss-soft);}
+  .chip:hover:not(.selected){border-color:#4a4756; color:var(--text);}
+
+  /* LIBRARY */
+  .library{padding:36px 0 90px;}
+
+  .state-box{
+    border:1px dashed var(--line);
+    border-radius:var(--radius-lg);
+    padding:56px 24px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.95rem;
+    display:none;
+  }
+  .state-box.show{display:block;}
+  .state-box code{background:var(--bg-raised-2); padding:2px 6px; border-radius:4px; font-family:var(--mono); font-size:0.85em;}
+
+  .paczka{
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    background:var(--bg-raised);
+    margin-bottom:16px;
+    overflow:hidden;
+    transition:border-color .15s ease;
+  }
+  .paczka:hover{border-color:#413e4c;}
+
+  .paczka-head{
+    padding:20px 24px;
+    display:flex; align-items:center; gap:16px;
+    cursor:pointer; user-select:none;
+  }
+  .paczka-icon{
+    width:42px; height:42px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg-raised-2); border:1px solid var(--line);
+    font-family:var(--mono); font-weight:500; font-size:0.95rem; color:var(--moss);
+  }
+  .paczka-titles{flex:1; min-width:0;}
+  .paczka-title{font-weight:600; font-size:1.06rem;}
+  .paczka-desc{color:var(--text-dim); font-size:0.85rem; margin-top:4px; max-width:60ch;}
+  .paczka-count{
+    font-family:var(--mono); font-size:0.72rem; color:var(--text-faint);
+    background:var(--bg-raised-2); border:1px solid var(--line);
+    padding:4px 10px; border-radius:999px; flex-shrink:0; white-space:nowrap;
+  }
+  .paczka-toggle{
+    color:var(--text-faint); font-size:0.8rem; flex-shrink:0;
+    transition:transform .15s ease;
+  }
+  .paczka.open .paczka-toggle{transform:rotate(90deg); color:var(--moss);}
+
+  .paczka-body{display:none; border-top:1px solid var(--line-soft); padding:20px 24px 8px;}
+  .paczka.open .paczka-body{display:block;}
+
+  .cat-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:18px 22px;}
+
+  .category{padding-bottom:20px;}
+  .category-head{display:flex; align-items:center; gap:9px; margin-bottom:4px;}
+  .category-icon{width:17px; height:17px; flex-shrink:0;}
+  .category-icon.mod{color:var(--moss);}
+  .category-icon.pack{color:var(--gold);}
+  .category-icon.conf{color:var(--slate);}
+  .category-name{font-weight:600; font-size:0.88rem;}
+  .category-install{
+    font-family:var(--mono); font-size:0.68rem; color:var(--text-faint);
+    margin:2px 0 12px 26px;
+  }
+
+  .file-row{
+    border:1px solid var(--line-soft); border-radius:var(--radius-md);
+    background:var(--bg-raised-2);
+    padding:11px 13px; margin-bottom:8px;
+  }
+  .file-top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+  .file-name{font-size:0.87rem; font-weight:500; word-break:break-word;}
+  .file-size{font-family:var(--mono); font-size:0.7rem; color:var(--text-faint); white-space:nowrap; flex-shrink:0; margin-top:2px;}
+  .file-notes{font-size:0.78rem; color:var(--text-dim); margin-top:5px;}
+  .file-actions{display:flex; gap:6px; margin-top:10px;}
+  .file-actions button, .file-actions a{
+    font-family:var(--sans); font-size:0.76rem;
+    padding:6px 11px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:transparent; color:var(--text);
+    cursor:pointer; text-decoration:none;
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .file-actions a.primary{
+    background:var(--moss); border-color:var(--moss); color:#161511; font-weight:600;
+  }
+  .file-actions a.primary:hover{background:#a4c186;}
+  .file-actions button:hover{border-color:var(--moss); color:var(--moss);}
+  .file-actions svg{width:12px; height:12px;}
+
+  .category-empty{color:var(--text-faint); font-size:0.78rem; font-style:italic;}
+
+  /* MODAL */
+  .overlay{
+    position:fixed; inset:0; background:rgba(8,7,11,0.78);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:24px;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.open{display:flex;}
+  .panel{
+    background:var(--bg-raised); border:1px solid var(--line); border-radius:var(--radius-lg);
+    width:min(520px, 100%); max-height:80vh; display:flex; flex-direction:column; overflow:hidden;
+    animation:panelIn .16s ease;
+  }
+  @keyframes panelIn{from{opacity:0; transform:scale(.97) translateY(4px);} to{opacity:1; transform:scale(1) translateY(0);}}
+  .panel-head{
+    padding:18px 22px; border-bottom:1px solid var(--line-soft);
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+  }
+  .panel-head h3{margin:0; font-size:1rem; font-weight:600; word-break:break-word;}
+  .panel-head .sub{font-family:var(--mono); font-size:0.72rem; color:var(--text-faint); margin-top:4px;}
+  .close-btn{background:none; border:none; color:var(--text-faint); font-size:1.15rem; cursor:pointer; padding:2px; flex-shrink:0;}
+  .close-btn:hover{color:var(--text);}
+  .panel-install{
+    margin:16px 22px 0; font-family:var(--mono); font-size:0.78rem; color:var(--gold);
+    background:var(--gold-soft); border:1px solid var(--gold-dim); border-radius:var(--radius-sm); padding:10px 12px;
+  }
+  .panel-install .label{color:var(--text-dim); display:block; font-size:0.66rem; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.04em;}
+  .panel-body{padding:16px 22px 22px; overflow-y:auto;}
+  ul.content-list{list-style:none; margin:0; padding:0; font-family:var(--mono); font-size:0.82rem;}
+  ul.content-list li{
+    padding:7px 0; border-top:1px dashed var(--line-soft); color:var(--text-dim);
+  }
+  ul.content-list li:first-child{border-top:none;}
+
+  footer{border-top:1px solid var(--line-soft); padding:28px 0 44px; color:var(--text-faint); font-size:0.8rem; text-align:center;}
+
+  @media (max-width:600px){
+    .paczka-head{flex-wrap:wrap;}
+    .paczka-count{order:3;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-name">Skrzynka</div>
+    </div>
+    <div class="top-meta">
+      <span><b id="metaPaczki">0</b> paczek</span>
+      <span><b id="metaPliki">0</b> plików</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="kicker">Biblioteka</div>
+    <h1>Mody, texture packi i konfiguracje w jednym miejscu.</h1>
+    <p>Wszystkie pliki trzymane są na Google Drive — kliknij „Pobierz”, żeby otworzyć plik, albo „Zawartość”, żeby zobaczyć co jest w środku, zanim go wgrasz.</p>
+
+    <div class="controls">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="searchInput" placeholder="Szukaj paczki lub pliku…">
+      </div>
+      <div class="chip-row" id="chipRow">
+        <button class="chip selected" data-filter="all" type="button">Wszystko</button>
+        <button class="chip" data-filter="Mody" type="button">Mody</button>
+        <button class="chip" data-filter="Texturepacki" type="button">Texturepacki</button>
+        <button class="chip" data-filter="Pliki konfiguracyjne" type="button">Konfiguracje</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="library" id="library">
+    <div id="paczkiContainer"></div>
+    <div class="state-box" id="loadingState">Wczytywanie biblioteki…</div>
+    <div class="state-box" id="emptyState">
+      Biblioteka jest pusta. Dodaj wpis paczki w <code>paczki.json</code> — patrz <code>README.md</code>.
+    </div>
+    <div class="state-box" id="noResultsState">Brak wyników dla tego wyszukiwania / filtra.</div>
+    <div class="state-box" id="errorState">Nie udało się wczytać <code>paczki.json</code>.</div>
+  </section>
+
+  <footer>Skrzynka — bibliotekę aktualizuje wyłącznie administrator.</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h3 id="panelTitle">nazwa.zip</h3>
+        <div class="sub" id="panelSub"></div>
+      </div>
+      <button class="close-btn" id="closeBtn" aria-label="Zamknij">✕</button>
+    </div>
+    <div class="panel-install" id="panelInstall" style="display:none;">
+      <span class="label">Wgraj do</span>
+      <span id="panelInstallPath"></span>
+    </div>
+    <div class="panel-body">
+      <ul class="content-list" id="contentList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Domyślne ścieżki instalacji dla kategorii — zmień jeśli chcesz */
+const CATEGORY_META = {
+  'Mody': { installPath: '.minecraft/mods', badge: 'mod' },
+  'Texturepacki': { installPath: '.minecraft/resourcepacks', badge: 'pack' },
+  'Pliki konfiguracyjne': { installPath: '.minecraft/config', badge: 'conf' }
+};
+
+const ICONS = {
+  mod: '<svg class="category-icon mod" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14.7 6.3a1 1 0 0 0-1.4 0L12 7.6l-1.3-1.3a1 1 0 0 0-1.4 1.4L10.6 9 9.3 10.3a1 1 0 1 0 1.4 1.4L12 10.4l1.3 1.3a1 1 0 0 0 1.4-1.4L13.4 9l1.3-1.3a1 1 0 0 0 0-1.4Z"/><path d="M4 13.5 12 21l8-7.5M4 13.5 12 6l8 7.5"/></svg>',
+  pack: '<svg class="category-icon pack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="8.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="14" r="1.1" fill="currentColor" stroke="none"/><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-.7 1.2-1.6-.3-.6-.1-1.4.6-1.6.5-.1.9 0 1.3.3.7.5 1.6.2 1.8-.6A9 9 0 0 0 12 3Z"/></svg>',
+  conf: '<svg class="category-icon conf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M20 18h0" stroke-linecap="round"/><circle cx="14.5" cy="6" r="2" fill="var(--bg-raised-2)"/><circle cx="6.5" cy="12" r="2" fill="var(--bg-raised-2)"/><circle cx="17" cy="18" r="2" fill="var(--bg-raised-2)"/></svg>',
+  external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4 10 14M7 6H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2"/></svg>'
+};
+
+const paczkiContainer = document.getElementById('paczkiContainer');
+const loadingState = document.getElementById('loadingState');
+const emptyState = document.getElementById('emptyState');
+const noResultsState = document.getElementById('noResultsState');
+const errorState = document.getElementById('errorState');
+const metaPaczki = document.getElementById('metaPaczki');
+const metaPliki = document.getElementById('metaPliki');
+const searchInput = document.getElementById('searchInput');
+const chipRow = document.getElementById('chipRow');
+
+const overlay = document.getElementById('overlay');
+const closeBtn = document.getElementById('closeBtn');
+const panelTitle = document.getElementById('panelTitle');
+const panelSub = document.getElementById('panelSub');
+const panelInstall = document.getElementById('panelInstall');
+const panelInstallPath = document.getElementById('panelInstallPath');
+const contentList = document.getElementById('contentList');
+
+let allPaczki = [];
+let activeFilter = 'all';
+let searchTerm = '';
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : str;
+  return div.innerHTML;
+}
+
+function setState(el, show){ el.classList.toggle('show', show); }
+
+fetch('paczki.json')
+  .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+  .then(data => {
+    allPaczki = Array.isArray(data) ? data : [];
+    loadingState.classList.remove('show');
+    const totalFiles = allPaczki.reduce((sum,p) => sum + Object.values(p.categories || {}).flat().length, 0);
+    metaPaczki.textContent = allPaczki.length;
+    metaPliki.textContent = totalFiles;
+    render();
+  })
+  .catch(() => {
+    loadingState.classList.remove('show');
+    setState(errorState, true);
+  });
+
+chipRow.addEventListener('click', e => {
+  const btn = e.target.closest('.chip');
+  if(!btn) return;
+  chipRow.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+  activeFilter = btn.dataset.filter;
+  render();
+});
+
+searchInput.addEventListener('input', () => {
+  searchTerm = searchInput.value.trim().toLowerCase();
+  render();
+});
+
+function matchesSearch(text){
+  return !searchTerm || (text || '').toLowerCase().includes(searchTerm);
+}
+
+function render(){
+  paczkiContainer.innerHTML = '';
+  setState(emptyState, false);
+  setState(noResultsState, false);
+
+  if(allPaczki.length === 0){
+    setState(emptyState, true);
+    return;
+  }
+
+  const categoriesToShow = activeFilter === 'all' ? Object.keys(CATEGORY_META) : [activeFilter];
+  let anyRendered = false;
+
+  allPaczki.forEach((paczka, idx) => {
+    const catsData = paczka.categories || {};
+    const visibleCats = categoriesToShow
+      .map(name => ({ name, files: (catsData[name] || []) }))
+      .map(c => ({ ...c, files: c.files.filter(f => matchesSearch(f.name) || matchesSearch(paczka.name)) }));
+
+    const hasAnyFile = visibleCats.some(c => c.files.length > 0);
+    const paczkaNameMatches = matchesSearch(paczka.name);
+    if(!hasAnyFile && !(paczkaNameMatches && activeFilter === 'all')) {
+      if(!hasAnyFile) return;
+    }
+
+    anyRendered = true;
+    paczkiContainer.appendChild(renderPaczka(paczka, visibleCats, idx === 0));
+  });
+
+  if(!anyRendered) setState(noResultsState, true);
+}
+
+function renderPaczka(paczka, visibleCats, openByDefault){
+  const totalFiles = visibleCats.reduce((sum,c) => sum + c.files.length, 0);
+  const section = document.createElement('div');
+  section.className = 'paczka' + (openByDefault ? ' open' : '');
+
+  const initials = (paczka.name || '?').trim().slice(0,2).toUpperCase();
+
+  const head = document.createElement('div');
+  head.className = 'paczka-head';
+  head.innerHTML = `
+    <div class="paczka-icon">${escapeHtml(initials)}</div>
+    <div class="paczka-titles">
+      <div class="paczka-title">${escapeHtml(paczka.name)}</div>
+      ${paczka.description ? `<div class="paczka-desc">${escapeHtml(paczka.description)}</div>` : ''}
+    </div>
+    <div class="paczka-count">${totalFiles} ${totalFiles === 1 ? 'plik' : 'plików'}</div>
+    <div class="paczka-toggle">▸</div>
+  `;
+  head.addEventListener('click', () => section.classList.toggle('open'));
+  section.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'paczka-body';
+  const grid = document.createElement('div');
+  grid.className = 'cat-grid';
+
+  visibleCats.forEach(cat => {
+    const meta = CATEGORY_META[cat.name] || { installPath: '', badge: 'mod' };
+    const catDiv = document.createElement('div');
+    catDiv.className = 'category';
+    catDiv.innerHTML = `
+      <div class="category-head">
+        ${ICONS[meta.badge] || ''}
+        <span class="category-name">${escapeHtml(cat.name)}</span>
+      </div>
+      <div class="category-install">wgraj do: ${escapeHtml(meta.installPath)}</div>
+    `;
+
+    if(cat.files.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'category-empty';
+      empty.textContent = 'Brak plików.';
+      catDiv.appendChild(empty);
+    } else {
+      cat.files.forEach(file => {
+        const row = document.createElement('div');
+        row.className = 'file-row';
+        const hasContents = Array.isArray(file.contents) && file.contents.length > 0;
+        row.innerHTML = `
+          <div class="file-top">
+            <div class="file-name">${escapeHtml(file.name)}</div>
+            ${file.size ? `<div class="file-size">${escapeHtml(file.size)}</div>` : ''}
+          </div>
+          ${file.notes ? `<div class="file-notes">${escapeHtml(file.notes)}</div>` : ''}
+          <div class="file-actions">
+            ${hasContents ? `<button type="button" class="view-btn">Zawartość</button>` : ''}
+            <a href="${escapeHtml(file.link)}" target="_blank" rel="noopener noreferrer" class="primary">
+              Pobierz ${ICONS.external}
+            </a>
+          </div>
+        `;
+        if(hasContents){
+          row.querySelector('.view-btn').addEventListener('click', () => openContents(file, meta.installPath));
+        }
+        catDiv.appendChild(row);
+      });
+    }
+    grid.appendChild(catDiv);
+  });
+
+  body.appendChild(grid);
+  section.appendChild(body);
+  return section;
+}
+
+function openContents(file, installPath){
+  panelTitle.textContent = file.name;
+  panelSub.textContent = file.contents.length + ' pozycji';
+  if(installPath){
+    panelInstall.style.display = 'block';
+    panelInstallPath.textContent = installPath;
+  } else {
+    panelInstall.style.display = 'none';
+  }
+  contentList.innerHTML = '';
+  file.contents.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    contentList.appendChild(li);
+  });
+  overlay.classList.add('open');
+}
+
+closeBtn.addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classList.remove('open'); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') overlay.classList.remove('open'); });
+
+setState(loadingState, true);
+</script>
+
+</body>
+</html>
