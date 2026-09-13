@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skrzynka — mody i texture packi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #17161a;
+    --surface: #1f1e23;
+    --line: #333138;
+    --text: #ececea;
+    --text-dim: #9a98a1;
+    --accent: #7fae7f;
+    --accent-soft: #26302a;
+    --radius: 10px;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    line-height:1.5;
+  }
+
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px;}
+
+  header{
+    padding:36px 0 28px;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    font-size:1.6rem;
+    margin:0 0 6px;
+    font-weight:700;
+  }
+  header p{
+    margin:0;
+    color:var(--text-dim);
+    font-size:0.98rem;
+  }
+
+  .search{
+    margin:24px 0;
+  }
+  .search input{
+    width:100%;
+    padding:11px 14px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--surface);
+    font-family:'Inter', sans-serif;
+    font-size:0.95rem;
+    color:var(--text);
+    outline:none;
+  }
+  .search input:focus{
+    border-color:var(--accent);
+  }
+  .search input::placeholder{color:#6b6972;}
+
+  main{padding-bottom:60px;}
+
+  .list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .pack{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    padding:16px 18px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+  }
+
+  .pack-info{min-width:0;}
+  .pack-name{
+    font-weight:600;
+    font-size:1rem;
+    margin:0 0 3px;
+    word-break:break-word;
+  }
+  .pack-desc{
+    color:var(--text-dim);
+    font-size:0.88rem;
+    margin:0;
+  }
+
+  .btn{
+    flex-shrink:0;
+    display:inline-block;
+    padding:9px 18px;
+    border-radius:var(--radius);
+    background:var(--accent);
+    color:#15140f;
+    font-size:0.88rem;
+    font-weight:600;
+    text-decoration:none;
+  }
+  .btn:hover{background:#6d9a6d;}
+
+  .state{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.92rem;
+    padding:50px 20px;
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+    display:none;
+  }
+  .state.show{display:block;}
+  .state code{
+    background:var(--accent-soft);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.85em;
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:22px 0;
+    color:var(--text-dim);
+    font-size:0.82rem;
+    text-align:center;
+  }
+
+  @media (max-width:480px){
+    .pack{flex-direction:column; align-items:flex-start;}
+    .btn{width:100%; text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Skrzynka</h1>
+    <p>Mody i texture packi do Minecrafta, gotowe do pobrania.</p>
+  </header>
+
+  <main>
+    <div class="search">
+      <input type="text" id="searchInput" placeholder="Szukaj paczki…">
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <div class="state" id="loadingState">Wczytywanie…</div>
+    <div class="state" id="emptyState">Biblioteka jest pusta. Dodaj wpis w <code>paczki.json</code>.</div>
+    <div class="state" id="noResultsState">Brak wyników dla tego wyszukiwania.</div>
+    <div class="state" id="errorState">Nie udało się wczytać <code>paczki.json</code>.</div>
+  </main>
+
+  <footer>Skrzynka — bibliotekę aktualizuje wyłącznie administrator.</footer>
+</div>
+
+<script>
+  const list = document.getElementById('list');
+  const loadingState = document.getElementById('loadingState');
+  const emptyState = document.getElementById('emptyState');
+  const noResultsState = document.getElementById('noResultsState');
+  const errorState = document.getElementById('errorState');
+  const searchInput = document.getElementById('searchInput');
+
+  let allPacks = [];
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+
+  function show(el, on){ el.classList.toggle('show', on); }
+
+  fetch('paczki.json')
+    .then(res => { if(!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    .then(data => {
+      allPacks = Array.isArray(data) ? data : [];
+      show(loadingState, false);
+      render();
+    })
+    .catch(() => {
+      show(loadingState, false);
+      show(errorState, true);
+    });
+
+  searchInput.addEventListener('input', render);
+
+  function render(){
+    const term = searchInput.value.trim().toLowerCase();
+    list.innerHTML = '';
+    show(emptyState, false);
+    show(noResultsState, false);
+
+    if(allPacks.length === 0){
+      show(emptyState, true);
+      return;
+    }
+
+    const filtered = allPacks.filter(p =>
+      !term || (p.name || '').toLowerCase().includes(term) || (p.description || '').toLowerCase().includes(term)
+    );
+
+    if(filtered.length === 0){
+      show(noResultsState, true);
+      return;
+    }
+
+    filtered.forEach(pack => {
+      const row = document.createElement('div');
+      row.className = 'pack';
+      row.innerHTML = `
+        <div class="pack-info">
+          <p class="pack-name">${escapeHtml(pack.name)}</p>
+          ${pack.description ? `<p class="pack-desc">${escapeHtml(pack.description)}</p>` : ''}
+        </div>
+        <a class="btn" href="${escapeHtml(pack.link)}" target="_blank" rel="noopener noreferrer">Pobierz</a>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  show(loadingState, true);
+</script>
+
+</body>
+</html>
